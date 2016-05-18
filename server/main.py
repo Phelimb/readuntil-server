@@ -1,6 +1,6 @@
 import numpy as np
 import flask
-from flask import Flask
+from flask import Flask, request
 import json
 from nanonet.features import events_to_features
 from nanonet.segment import segment
@@ -9,6 +9,7 @@ from nanonet.util import kmers_to_sequence
 import tempfile
 import pkg_resources
 import subprocess
+import timeit 
 
 app = Flask(__name__)
 
@@ -64,25 +65,38 @@ def _write_temp_fasta_file(data, min_prob=1e-5, trans = None):
     seq = kmers_to_sequence(kmer_path)
     _,tmpf = tempfile.mkstemp()
     with open(tmpf, 'w') as of:
-    	of.write(">%s\n" % data["id"])
-    	of.write("%s\n" % seq)
+        of.write(">%s\n" % data["id"])
+        of.write("%s\n" % seq)
     return tmpf,seq
 
 def run_bwa_mem(f):
-	l = ['bwa','mem', '-x', 'ont2d', '/Users/phelimb/Documents/git/readuntil-server/server/data/NC_000962.3.fasta', f]
-	outsam = subprocess.check_output(l)
-	return outsam
+    l = ['bwa','mem', '-x', 'ont2d', '/Users/phelimb/Documents/git/readuntil-server/server/data/NC_000962.3.fasta', f]
+    outsam = subprocess.check_output(l)
+    return outsam
 
 def is_tb(sam):
-	return not int(sam.split('\n')[2].split('\t')[1]) == 4
+    return not int(sam.split('\n')[2].split('\t')[1]) == 4
 
-@app.route("/")
-def hello():
-    with open("/Users/phelimb/Documents/git/readuntil-server/sample_data/sample_events.json","r") as infile:
-        data = json.load(infile)	
-    tmpf,seq = _write_temp_fasta_file(data)
-    outsam = run_bwa_mem(tmpf)
-    return flask.jsonify({"id" : data["id"], "is_tb" : is_tb(outsam)})
+@app.route('/', methods=['GET','POST'])
+def process_events():
+    if request.method == 'POST':
+        print request.json
+        t0 = timeit.default_timer()
+        data = request.json
+        tmpf,seq = _write_temp_fasta_file(data)
+        outsam = run_bwa_mem(tmpf)
+        t1 = timeit.default_timer()
+        return flask.jsonify({"id" : data["id"], "is_tb" : is_tb(outsam), "response_time" : t1-t0})
+    else:
+        with open("/Users/phelimb/Documents/git/readuntil-server/sample_data/sample_events.json","r") as infile:
+            data = json.load(infile)         
+        return """<p>Please POST event data. e.g. </p><p> 
+
+                curl -H "Content-Type: application/json" -X POST -d '%s' http://localhost:5000/
+
+                </p>
+
+                 """ % (str(data))
 
 
 if __name__ == "__main__":

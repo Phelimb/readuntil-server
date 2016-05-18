@@ -1,0 +1,9 @@
+web:
+  image: phelimb/readuntil  
+nginx_rp:
+  image: phelimb/nginx_rp
+  ports:
+    - "80:80"  
+    - "443:443"
+  links:
+    - "web"

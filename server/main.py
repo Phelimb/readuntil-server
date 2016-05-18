@@ -10,6 +10,7 @@ import tempfile
 import pkg_resources
 import subprocess
 import timeit 
+import os
 
 app = Flask(__name__)
 
@@ -70,7 +71,9 @@ def _write_temp_fasta_file(data, min_prob=1e-5, trans = None):
     return tmpf,seq
 
 def run_bwa_mem(f):
-    l = ['bwa','mem', '-x', 'ont2d', '/Users/phelimb/Documents/git/readuntil-server/server/data/NC_000962.3.fasta', f]
+    ref = os.path.join(os.path.dirname(__file__), 'data/NC_000962.3.fasta')
+
+    l = ['bwa','mem', '-x', 'ont2d',ref , f]
     outsam = subprocess.check_output(l)
     return outsam
 
@@ -80,7 +83,6 @@ def is_tb(sam):
 @app.route('/', methods=['GET','POST'])
 def process_events():
     if request.method == 'POST':
-        print request.json
         t0 = timeit.default_timer()
         data = request.json
         tmpf,seq = _write_temp_fasta_file(data)
@@ -88,7 +90,8 @@ def process_events():
         t1 = timeit.default_timer()
         return flask.jsonify({"id" : data["id"], "is_tb" : is_tb(outsam), "response_time" : t1-t0})
     else:
-        with open("/Users/phelimb/Documents/git/readuntil-server/sample_data/sample_events.json","r") as infile:
+        sdata = os.path.join(os.path.dirname(__file__), 'data/sample_events.json')
+        with open(sdata,"r") as infile:
             data = json.load(infile)         
         return """<p>Please POST event data. e.g. </p><p> 
 
@@ -100,4 +103,4 @@ def process_events():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0')

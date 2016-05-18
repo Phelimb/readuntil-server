@@ -1,6 +1,7 @@
 import sys
 sys.path.append("..")
 from server.main import events_numpy_to_dict
+from server.main import events_dict_to_numpy
 import h5py
 import json
 fast5 = h5py.File("tests/minion1_PC_MN16255_FAA90892_mtub_L42182_200416_1717_1_ch244_read1222_strand.fast5",'r')

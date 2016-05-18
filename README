@@ -1,0 +1,15 @@
+# Install
+
+	pip install -r requirements.txt
+
+	python server/main.py
+
+# Current status
+
+server loads events from a json in sample_data/sample_events.json and uses nanonetcall to basecall.
+
+## TODO
+
+* Accept POST requests of event JSON data
+* use bwa to map to TB reference
+* return JSON with {"id" : ":read_id", "tb" : 1/0}

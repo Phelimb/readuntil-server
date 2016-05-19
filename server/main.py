@@ -35,9 +35,8 @@ def events_dict_to_numpy(d):
 
 
 __ETA__ = 1e-300
-
+network = np.load(pkg_resources.resource_filename('nanonet', 'data/default_template.npy')).item()
 def _write_temp_fasta_file(data, min_prob=1e-5, trans = None):
-    network = np.load(pkg_resources.resource_filename('nanonet', 'data/default_template.npy')).item()
     events = events_dict_to_numpy(data)
     events, _ = segment(events, section='template') 
     features =  events_to_features(events, window=[-1, 0, 1])[10:-10]
@@ -84,7 +83,10 @@ def is_tb(sam):
 def process_events():
     if request.method == 'POST':
         t0 = timeit.default_timer()
-        data = request.json
+        if isinstance(request.json,dict):
+            data = request.json 
+        else:
+            data = json.loads(request.json)
         tmpf,seq = _write_temp_fasta_file(data)
         outsam = run_bwa_mem(tmpf)
         t1 = timeit.default_timer()

@@ -47,7 +47,7 @@ for i,f in enumerate(files):
 		if evs['length'][0].__class__.__name__=="float64": length_ary.extend((evs['length']*4000).astype(int))
 		else: length_ary.extend(evs['length'])
 
-		readsummary.append([start,duration,totevs,len(evs)])
+		readsummary.append([start,duration,totevs,len(evs),os.path.basename(f)])
 		totevs+=len(evs)
 	
 		fast5.close()			
@@ -70,6 +70,7 @@ output.write(mean_ary.tostring())
 output.write(stdv_ary.tostring())
 output.write(start_ary.tostring())
 output.write(length_ary.tostring())
+output.write("\n".join(readsummary[4]))
 output.close()
 
 

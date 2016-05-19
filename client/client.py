@@ -29,7 +29,10 @@ class NanoClient:
 		self.start_ary=array.array('l',a.read(8*evlen))
 		self.length_ary=array.array('l',a.read(8*evlen))
 		##############
-		assert len(self.mean_ary)== len(self.stdv_ary)== len(self.start_ary)== len(self.length_ary) and not a.read()
+		self.readnames=[i.strip() for i in a]
+		print len(self.readnames),len(self.start)
+
+		assert len(self.mean_ary)== len(self.stdv_ary)== len(self.start_ary)== len(self.length_ary) and len(self.readnames)==len(self.start) and not a.read()
 		sys.stderr.write( "Index loaded\n")
 
 		self.threads=[]
@@ -38,7 +41,7 @@ class NanoClient:
 		self.server=server
 		self.QUEUE=Queue.Queue()
 		self.output=open(output,"w")
-		self.output.write("istb\ttot_processing_time\tread_time\tperc\tnum_evs\n")
+		self.output.write("read_id\tistb\ttot_processing_time\tread_time\tperc\tnum_evs\n")
 
 	def simulateread(self,n):
 		tini=time.time()
@@ -82,7 +85,7 @@ class NanoClient:
 				except: return
 				break
 
-		self.QUEUE.put([istb,time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
+		self.QUEUE.put([self.readnames[n],istb,time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 
 
 	def cleanThreadsAndQueue(self):

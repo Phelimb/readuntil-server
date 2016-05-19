@@ -16,10 +16,16 @@ app = Flask(__name__)
 
 def events_numpy_to_dict(events):
     d = {}
-    d["start"] = events["start"].tolist()
-    d["length"] = events["length"].tolist()
-    d["mean"] = events["mean"].tolist()
-    d["stdv"] = events["stdv"].tolist()
+    try:
+        d["start"] = events["start"].tolist()
+        d["length"] = events["length"].tolist()
+        d["mean"] = events["mean"].tolist()
+        d["stdv"] = events["stdv"].tolist()
+    except ValueError:
+        d["start"] = events["start"].tolist()
+        d["length"] = events["length"].tolist()
+        d["mean"] = events["mean"].tolist()
+        d["stdv"] = events["variance"].tolist()        
     return d
 
 
@@ -36,9 +42,7 @@ def events_dict_to_numpy(d):
 
 __ETA__ = 1e-300
 network = np.load(pkg_resources.resource_filename('nanonet', 'data/default_template.npy')).item()
-def _write_temp_fasta_file(data, min_prob=1e-5, trans = None):
-    events = events_dict_to_numpy(data)
-    events, _ = segment(events, section='template') 
+def _basecall(events,_id,  min_prob=1e-5, trans = None):
     features =  events_to_features(events, window=[-1, 0, 1])[10:-10]
     post = network.run(features.astype(nn.dtype))
     kmers = network.meta['kmers']
@@ -63,11 +67,8 @@ def _write_temp_fasta_file(data, min_prob=1e-5, trans = None):
     # Form basecall
     kmer_path = [kmers[i] for i in states]
     seq = kmers_to_sequence(kmer_path)
-    _,tmpf = tempfile.mkstemp()
-    with open(tmpf, 'w') as of:
-        of.write(">%s\n" % data["id"])
-        of.write("%s\n" % seq)
-    return tmpf,seq
+
+    return seq
 
 def run_bwa_mem(f):
     ref = os.path.join(os.path.dirname(__file__), 'data/NC_000962.3.fasta')
@@ -87,10 +88,23 @@ def process_events():
             data = request.json 
         else:
             data = json.loads(request.json)
-        tmpf,seq = _write_temp_fasta_file(data)
+        _id= data["id"]
+        events = events_dict_to_numpy(data)
+        events, _ = segment(events, section='template')   
+        t1 = timeit.default_timer()          
+        print "time to convert events", t1-t0
+        seq = _basecall(events, _id)
+        t1a = timeit.default_timer()                  
+        print "time to basecall", t1a-t1    
+        _,tmpf = tempfile.mkstemp()
+        with open(tmpf, 'w') as of:
+            of.write(">%s\n" % _id)
+            of.write("%s\n" % seq)   
+        t1b = timeit.default_timer()  
+        print "time to mktmp", t1b-t1a
         outsam = run_bwa_mem(tmpf)
-        t1 = timeit.default_timer()
-        return flask.jsonify({"id" : data["id"], "is_tb" : is_tb(outsam), "response_time" : t1-t0})
+        t2 = timeit.default_timer()
+        return flask.jsonify({"id" : _id, "is_tb" : is_tb(outsam), "response_time" : t2-t0})
     else:
         sdata = os.path.join(os.path.dirname(__file__), 'data/sample_events.json')
         with open(sdata,"r") as infile:

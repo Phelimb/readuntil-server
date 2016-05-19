@@ -44,8 +44,9 @@ for i,f in enumerate(files):
 		stdv_ary.extend(evs['stdv'])
 		if evs['start'][0].__class__.__name__=="float64": start_ary.extend((evs['start']*4000).astype(int))
 		else: start_ary.extend(evs['start'])
-		if evs['length'][0].__class__.__name__=="float64": start_ary.extend((evs['length']*4000).astype(int))
+		if evs['length'][0].__class__.__name__=="float64": length_ary.extend((evs['length']*4000).astype(int))
 		else: length_ary.extend(evs['length'])
+
 		readsummary.append([start,duration,totevs,len(evs)])
 		totevs+=len(evs)
 	

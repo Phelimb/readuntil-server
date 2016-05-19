@@ -35,9 +35,8 @@ def events_dict_to_numpy(d):
 
 
 __ETA__ = 1e-300
-
+network = np.load(pkg_resources.resource_filename('nanonet', 'data/default_template.npy')).item()
 def _write_temp_fasta_file(data, min_prob=1e-5, trans = None):
-    network = np.load(pkg_resources.resource_filename('nanonet', 'data/default_template.npy')).item()
     events = events_dict_to_numpy(data)
     events, _ = segment(events, section='template') 
     features =  events_to_features(events, window=[-1, 0, 1])[10:-10]

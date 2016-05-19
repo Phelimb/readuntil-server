@@ -84,7 +84,10 @@ def is_tb(sam):
 def process_events():
     if request.method == 'POST':
         t0 = timeit.default_timer()
-        data = request.json
+        if isinstance(request.json,dict):
+            data = request.json 
+        else:
+            data = json.loads(request.json)
         tmpf,seq = _write_temp_fasta_file(data)
         outsam = run_bwa_mem(tmpf)
         t1 = timeit.default_timer()

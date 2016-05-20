@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import struct
 import array
 import time
@@ -8,6 +9,7 @@ import argparse
 import Queue
 import sys
 import os
+import requests
 
 class NanoClient:
 	def __init__(self,indexfile='index',trimlength=100,sampEvSize=300,server="http://localhost:8001/",output=None,speed=1):
@@ -76,13 +78,13 @@ class NanoClient:
 			time.sleep(.1)
 			curTime=time.time()-self.simStartTime
 			if curTime>sendTime:
+					response = requests.post(self.server, json=json.dumps(data))	
 					try:
-						req = urllib2.Request(self.server, data, {'Content-Type': 'application/json', 'Content-Length': len(data)})
-						f = urllib2.urlopen(req)
-						response = json.loads(f.read())
+						response.json()
 						curTime=time.time()-self.simStartTime
 						istb=response["is_tb"]
 					except:
+						print response.content
 						self.QUEUE.put([self.readnames[n],"HTTPERR",time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 						return
 						

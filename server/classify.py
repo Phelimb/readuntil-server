@@ -32,7 +32,7 @@ for f in filelist:
 				events= fast5["Analyses"]["EventDetection_000"]["Reads"][str(read)]["Events"]
 			except KeyError:
 				events = fast5["Analyses"]["Basecall_RNN_1D_000"]["BaseCalled_template"]["Events"]
-			d =  events_numpy_to_dict(events[:])
+			d =  events_numpy_to_dict(events[100:400])
 			d["id"] = os.path.basename(f)
 			t1 = timeit.default_timer()	
 			# print t1-t0
@@ -42,7 +42,7 @@ for f in filelist:
 			try:
 				print response.json()
 			except:
-				print {"id" : d["id"], "error" : "failed"}
+				print {"id" : d["id"], "error" : response.content}
 		except KeyError:
 			pass
 			print {"id" : d["id"], "error" : "No Analyses Folder"}

@@ -32,4 +32,4 @@ WORKDIR /readuntil_tb/server/
 
 
 
-CMD uwsgi --buffer-size=32768 --single-interpreter --enable-threads --processes 4 --http :8001 --http-timeout 300 -w wsgi:app
+CMD uwsgi --buffer-size=32768 --processes 4 --http :8001 --http-timeout 3000 -w wsgi:app

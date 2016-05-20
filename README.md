@@ -1,9 +1,30 @@
+# Readuntil Mtub
+
+A server for classifying ONT reads in realtime using event data. Run the server and POST event data, recieve responses with TB/not TB. 
+
+
 # Install
 
-	pip install -r requirements.txt
+## Docker
 
-	cd server
-	python wsgi.py
+   docker-compose up -d
+   
+   ## Find the IP address to send the requests
+   docker-machine ip
+   
+
+## Alternative install
+
+	pip install -r requirements.txt
+	python server/wsgi.py
+
+# Non-python requirements
+
+bwa 0.7.13 must be on path. See Dockerfile for install instructions. 
+
+## Docker install
+
+
 
 # Usage
 

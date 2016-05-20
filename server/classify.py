@@ -26,15 +26,27 @@ for f in filelist:
 	except IOError:
 		pass
 	else:
-		read=fast5["Raw"]["Reads"].keys()[0]
-		d =  events_numpy_to_dict(fast5["Analyses"]["EventDetection_000"]["Reads"][str(read)]["Events"][100:600])
-		d["id"] = os.path.basename(f)
-		t1 = timeit.default_timer()	
-		# print t1-t0
-		response = requests.post(args.host, json=json.dumps(d))
-		t2 = timeit.default_timer()
-		# print t2-t0
 		try:
-			print response.json()
-		except:
-			{"id" : d["id"], "error" : "failed"}
+			read=fast5["Raw"]["Reads"].keys()[0]
+			try:
+				events= fast5["Analyses"]["EventDetection_000"]["Reads"][str(read)]["Events"]
+			except KeyError:
+				events = fast5["Analyses"]["Basecall_RNN_1D_000"]["BaseCalled_template"]["Events"]
+			d =  events_numpy_to_dict(events[:])
+			d["id"] = os.path.basename(f)
+			t1 = timeit.default_timer()	
+			# print t1-t0
+			response = requests.post(args.host, json=json.dumps(d))
+			t2 = timeit.default_timer()
+			# print t2-t0
+			try:
+				print response.json()
+			except:
+				print {"id" : d["id"], "error" : "failed"}
+		except KeyError:
+			pass
+			print {"id" : d["id"], "error" : "No Analyses Folder"}
+			# print fast5.keys()
+			if "Analyses" in fast5:
+				print fast5["Analyses"]["Basecall_RNN_1D_000"]["BaseCalled_template"]["Events"].keys()
+				print str(fast5["Analyses"]["Basecall_RNN_1D_000"]["BaseCalled_template"]["Fastq"])

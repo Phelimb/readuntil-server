@@ -9,10 +9,8 @@ import Queue
 import sys
 import os
 
-
-
 class NanoClient:
-	def __init__(self,indexfile='index',trimlength=100,sampEvSize=300,server="http://localhost:8001/",output=None):
+	def __init__(self,indexfile='index',trimlength=100,sampEvSize=300,server="http://localhost:8001/",output=None,speed=1):
 		sys.stderr.write( "Loading index...\n")
 		a=open(indexfile)
 		sumlen=int(struct.unpack('l',a.read(8))[0])
@@ -42,12 +40,13 @@ class NanoClient:
 		self.QUEUE=Queue.Queue()
 		self.output=open(output,"w")
 		self.output.write("read_id\tistb\ttot_processing_time\tread_time\tperc\tnum_evs\n")
+		self.freq=int(4000*speed)
 
 	def simulateread(self,n):
 		tini=time.time()
 		# Time when the read starts and should have finished
-		startRead=(self.start[n])/float(4000)
-		endRead=(self.start[n]+self.duration[n])/float(4000)
+		startRead=(self.start[n])/float(self.freq)
+		endRead=(self.start[n]+self.duration[n])/float(self.freq)
 
 		# Current time
 		curTime=time.time()-self.simStartTime
@@ -56,13 +55,14 @@ class NanoClient:
 		pos=self.pos[n]
 		# If we don't have enought events to trim, we ignore the read
 		if self.nevs[n]<self.trimlength: 
+			self.QUEUE.put([self.readnames[n],"SHORT",time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 			return
 
 		# if we don't have enough events to create a sample read, we calculate the end, to crceate a shorter read
 		endSampEvSize=min(self.nevs[n],self.trimlength+self.sampEvSize)
 
 		# We calculate the time at which the set of events will have to be sent to the server
-		sendTime=(sum(self.length_ary[pos:pos+endSampEvSize])+self.start[n])/float(4000)
+		sendTime=(sum(self.length_ary[pos:pos+endSampEvSize])+self.start[n])/float(self.freq)
 
 		# Json containing the data of the events
 		data=json.dumps({'start':list(self.start_ary[pos+self.trimlength:pos+endSampEvSize]),
@@ -72,18 +72,22 @@ class NanoClient:
 						 'id':'-'
 						 })
 
-		while curTime<endRead:
+		while True:
 			time.sleep(.1)
 			curTime=time.time()-self.simStartTime
 			if curTime>sendTime:
-				try:
-					req = urllib2.Request(self.server, data, {'Content-Type': 'application/json', 'Content-Length': len(data)})
-					f = urllib2.urlopen(req)
-					response = json.loads(f.read())
-					curTime=time.time()-self.simStartTime
-					istb=response["is_tb"]
-				except: return
-				break
+					try:
+						req = urllib2.Request(self.server, data, {'Content-Type': 'application/json', 'Content-Length': len(data)})
+						f = urllib2.urlopen(req)
+						response = json.loads(f.read())
+						curTime=time.time()-self.simStartTime
+						istb=response["is_tb"]
+					except:
+						self.QUEUE.put([self.readnames[n],"HTTPERR",time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
+						return
+						
+					break
+			if curTime>endRead: break
 
 		self.QUEUE.put([self.readnames[n],istb,time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 
@@ -99,7 +103,7 @@ class NanoClient:
 
 
 	def simulate(self,nreads=0):
-		self.simStartTime=time.time()-self.start[0]/float(4000)
+		self.simStartTime=time.time()-self.start[0]/float(self.freq)
 		lastThreadClean=0
 		ex=False
 		
@@ -112,7 +116,7 @@ class NanoClient:
 			sys.stderr.write("\r{0}/{1}".format(readn,totreads))
 			sys.stderr.flush()
 			curTime=time.time()-self.simStartTime
-			while self.start[readn]/float(4000)<curTime and readn<totreads:
+			while self.start[readn]/float(self.freq)<curTime and readn<totreads:
 				th=threading.Thread(target=self.simulateread,kwargs={'n':readn})
 				th.start()
 				self.threads.append(th)
@@ -140,10 +144,12 @@ if __name__=='__main__':
 	parser.add_argument("-n",dest="nreads",help="#reads to simulate [0=all]",default=0, type=int)
 	parser.add_argument("-s",dest="server",help="Http Server url [http://localhost:8001/]",default="http://localhost:8001/")
 	parser.add_argument("-o",dest="output",help="Output Csvfile",required=True)
+	parser.add_argument("-x",dest="speed",help="Time speed (1)X 2(X) [1.0]",default=1.0,type=float)
+
 	args = parser.parse_args()
 
 	if os.path.isfile(args.output) and raw_input('output already exists, overwrite? (N/y)').strip().lower()!='y':
 		sys.exit(0)
 
-	nc=NanoClient(args.index,args.trimlen,args.readlen,args.server,args.output)
+	nc=NanoClient(args.index,args.trimlen,args.readlen,args.server,args.output,args.speed)
 	nc.simulate(args.nreads)

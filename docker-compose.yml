@@ -1,5 +1,6 @@
 web:
-  image: phelimb/readuntil  
+  #image: phelimb/readuntil  
+  image: phelimb/readuntil-ob
 nginx_rp:
   image: phelimb/nginx_rp
   ports:

@@ -36,8 +36,8 @@ for i,f in enumerate(files):
 		read=fast5["Raw"]["Reads"].keys()[0]
 		start = fast5["Raw"]["Reads"][str(read)].attrs.get("start_time")
 		duration = fast5["Raw"]["Reads"][str(read)].attrs.get("duration")
-	#	evs=fast5['Analyses']['EventDetection_000']['Reads'][read]['Events']
-		evs=fast5['Analyses']['Basecall_RNN_1D_000']['BaseCalled_template']['Events']
+		evs=fast5['Analyses']['EventDetection_000']['Reads'][read]['Events']
+#		evs=fast5['Analyses']['Basecall_RNN_1D_000']['BaseCalled_template']['Events']
 	
 		
 		mean_ary.extend(evs['mean'])

@@ -46,6 +46,7 @@ The output will be a JSON, you are interested in the value: ws_event_sampler_por
 
 Tha quickest way to transfer data is the following:
 
+* Ypu need to switch to university network to be able to reach GEL or WT
 * Use Lou credentials or you out private key
 * Execute cmd.exe
 ```bash
@@ -54,3 +55,5 @@ cd /cygdrive/c/data/reads
 ssh -p989 -i PATH_TO_YOUR_PRIVATE_KEY compass@83.151.222.218 'mkdir /mnt/microbio/HOMES/Nanopore/RUNNAME'
 tar -c . | ssh -p989 compass@83.151.222.218 'cat > /mnt/microbio/HOMES/Nanopore/RUNNAME/reads.tar' 
 ```
+
+You could copy directly to WT but it is good to have a copy in JR.

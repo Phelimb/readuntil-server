@@ -43,21 +43,25 @@ class NanoClient:
 		self.output=open(output,"w")
 		self.output.write("read_id\tistb\ttot_processing_time\tread_time\tperc\tnum_evs\n")
 		self.freq=int(4000*speed)
+		self.secsAdvanced=0
+
+	def getTime(self):
+		return time.time()+self.secsAdvanced
 
 	def simulateread(self,n):
-		tini=time.time()
+		tini=self.getTime()
 		# Time when the read starts and should have finished
 		startRead=(self.start[n])/float(self.freq)
 		endRead=(self.start[n]+self.duration[n])/float(self.freq)
 
 		# Current time
-		curTime=time.time()-self.simStartTime
+		curTime=self.getTime()-self.simStartTime
 
 		# Pos of the first event in the event arrays
 		pos=self.pos[n]
 		# If we don't have enought events to trim, we ignore the read
 		if self.nevs[n]<self.trimlength: 
-			self.QUEUE.put([self.readnames[n],"SHORT",time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
+			self.QUEUE.put([self.readnames[n],"SHORT",self.getTime()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 			return
 
 		# if we don't have enough events to create a sample read, we calculate the end, to crceate a shorter read
@@ -71,27 +75,28 @@ class NanoClient:
 						 'length':list(self.length_ary[pos+self.trimlength:pos+endSampEvSize]),
 						 'mean':list(self.mean_ary[pos+self.trimlength:pos+endSampEvSize]),
 						 'stdv':list(self.stdv_ary[pos+self.trimlength:pos+endSampEvSize]),
-						 'id':'-'
+						 'id': self.readnames[n]
 						 })
 
 		while True:
 			time.sleep(.1)
-			curTime=time.time()-self.simStartTime
+			curTime=self.getTime()-self.simStartTime
 			if curTime>sendTime:
 					response = requests.post(self.server, json=json.dumps(data))	
+					response.close()
 					try:
-						response.json()
-						curTime=time.time()-self.simStartTime
+						response=response.json()
+						curTime=self.getTime()-self.simStartTime
 						istb=response["is_tb"]
 					except:
 						print response.content
-						self.QUEUE.put([self.readnames[n],"HTTPERR",time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
+						self.QUEUE.put([self.readnames[n],"HTTPERR",self.getTime()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 						return
 						
 					break
 			if curTime>endRead: break
 
-		self.QUEUE.put([self.readnames[n],istb,time.time()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
+		self.QUEUE.put([self.readnames[n],istb,self.getTime()-tini,endRead-startRead,float(curTime-startRead)*100/(endRead-startRead),self.nevs[n]])
 
 
 	def cleanThreadsAndQueue(self):
@@ -105,7 +110,7 @@ class NanoClient:
 
 
 	def simulate(self,nreads=0):
-		self.simStartTime=time.time()-self.start[0]/float(self.freq)
+		self.simStartTime=self.getTime()-self.start[0]/float(self.freq)
 		lastThreadClean=0
 		ex=False
 		
@@ -115,9 +120,14 @@ class NanoClient:
 		else: totreads=len(self.start)
 
 		while readn<totreads:
-			sys.stderr.write("\r{0}/{1}".format(readn,totreads))
+			sys.stderr.write("\r{0}/{1} ({2})".format(readn,totreads,len(self.threads)))
 			sys.stderr.flush()
-			curTime=time.time()-self.simStartTime
+			curTime=self.getTime()-self.simStartTime
+			if not self.threads and  curTime<self.start[readn]/float(self.freq):  
+##				print  "###",readn,self.start[readn],curTime,self.simStartTime
+				self.secsAdvanced+=self.start[readn]/float(self.freq)-curTime
+
+
 			while self.start[readn]/float(self.freq)<curTime and readn<totreads:
 				th=threading.Thread(target=self.simulateread,kwargs={'n':readn})
 				th.start()
@@ -135,6 +145,8 @@ class NanoClient:
 			i.join()
 
 		self.cleanThreadsAndQueue()
+
+
 		self.output.close()
 
 

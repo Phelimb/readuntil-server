@@ -79,7 +79,8 @@ def run_bwa_mem(f):
     return outsam
 
 def is_tb(sam):
-    return not int(sam.split('\n')[2].split('\t')[1]) == 4
+	sam=sam.split("\n")
+	return sam[2] and not int(sam[2].split('\t')[1]) == 4
 
 @app.route('/', methods=['GET','POST'])
 def process_events():
@@ -89,6 +90,8 @@ def process_events():
             data = request.json 
         else:
             data = json.loads(request.json)
+            while not  isinstance(data,dict):
+               data = json.loads(data)
         _id= data.get("id", "")
         events = events_dict_to_numpy(data)
         events, _ = segment(events, section='template')   
@@ -98,13 +101,19 @@ def process_events():
         # print (_id, seq)
         t1a = timeit.default_timer()                  
         # print "time to basecall", t1a-t1    
-        _,tmpf = tempfile.mkstemp()
-        with open(tmpf, 'w') as of:
-            of.write(">%s\n" % _id)
-            of.write("%s\n" % seq)   
+        channel,tmpf = tempfile.mkstemp()
+
+        os.write(channel,">%s\n" % _id)
+        os.write(channel,"%s\n" % seq)   
+        ff=open("/tmp/BCALLS","a")
+        ff.write(">{0}\n{1}\n".format (_id,seq))
+        ff.close()
+        os.close(channel)
+
         t1b = timeit.default_timer()  
         # print "time to mktmp", t1b-t1a
         outsam = run_bwa_mem(tmpf)
+        os.unlink(tmpf)
         t2 = timeit.default_timer()
         return flask.jsonify({"id" : _id, "is_tb" : is_tb(outsam), "response_time" : t2-t0})
     else:

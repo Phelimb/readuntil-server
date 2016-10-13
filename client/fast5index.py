@@ -5,6 +5,20 @@ import sys
 import array
 import struct
 
+def fast5s(path):
+	items=[os.path.join(path,i) for i in os.listdir(path)]
+
+	f=[i for i in items if os.path.isfile(i) and i.endswith('.fast5')]
+	d=[i for i in items if os.path.isdir(i)]
+
+	for i in d:
+		f.extend(fast5s(i))
+
+	return f
+
+
+	
+
 if len(sys.argv)!=3:
 	print "Wrong number of arguments"
 	print sys.argv[0],"[PATH_TO_FAST5_FOLDER] [IndexName]"
@@ -25,10 +39,10 @@ length_ary=array.array('l')
 totevs=0
 
 
-files = glob.glob(sys.argv[1]+"/*.fast5" )
+files = fast5s(sys.argv[1])
 print "Processing",len(files),"files"
 for i,f in enumerate(files):
-	if not i%1000:
+	if not i%100:
 		sys.stderr.write("\r{0}".format(i))
 		sys.stderr.flush()
 	try:
@@ -37,7 +51,7 @@ for i,f in enumerate(files):
 		start = fast5["Raw"]["Reads"][str(read)].attrs.get("start_time")
 		duration = fast5["Raw"]["Reads"][str(read)].attrs.get("duration")
 		evs=fast5['Analyses']['EventDetection_000']['Reads'][read]['Events']
-#		evs=fast5['Analyses']['Basecall_RNN_1D_000']['BaseCalled_template']['Events']
+		#evs=fast5['Analyses']['Basecall_RNN_1D_000']['BaseCalled_template']['Events']
 	
 		
 		mean_ary.extend(evs['mean'])
@@ -52,6 +66,9 @@ for i,f in enumerate(files):
 	
 		fast5.close()			
 	except KeyError as e: 
+		sys.stderr.write("\r{0} Error in file: {1}".format(i,f.strip()))
+		sys.stderr.flush()
+	except IOError as e: 
 		sys.stderr.write("\r{0} Error in file: {1}".format(i,f.strip()))
 		sys.stderr.flush()
 

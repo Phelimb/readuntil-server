@@ -2,4 +2,4 @@ requests
 numpy
 Flask
 uwsgi
-h5py
+#h5py

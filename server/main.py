@@ -74,8 +74,7 @@ def _basecall(events,_id,  min_prob=1e-5, trans = None, trim=10):
 
 def run_bwa_mem(f):
     ref = os.path.join(os.path.dirname(__file__), 'data/NC_000962.3.fasta')
-
-    l = ['bwa','mem', '-x', 'ont2d',ref , f]
+    l = ['bwa','mem','-v','1', '-x', 'ont2d',ref , f]
     outsam = subprocess.check_output(l)
     return outsam
 
@@ -90,13 +89,13 @@ def process_events():
             data = request.json 
         else:
             data = json.loads(request.json)
-        _id= data["id"]
+        _id= data.get("id", "")
         events = events_dict_to_numpy(data)
         events, _ = segment(events, section='template')   
         t1 = timeit.default_timer()          
         # print "time to convert events", t1-t0
         seq = _basecall(events, _id)
-        print (_id, seq)
+        # print (_id, seq)
         t1a = timeit.default_timer()                  
         # print "time to basecall", t1a-t1    
         _,tmpf = tempfile.mkstemp()

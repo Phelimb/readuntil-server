@@ -1,0 +1,66 @@
+FROM ubuntu:16.04
+
+RUN mkdir /readuntil_tb
+WORKDIR /readuntil_tb
+
+RUN apt-get update -y
+RUN apt-get install -y wget make gcc gfortran zlib1g-dev unzip python-dev python-pip build-essential 
+
+## Install bwa
+RUN wget https://github.com/lh3/bwa/archive/v0.7.13.tar.gz
+RUN tar -xvf v0.7.13.tar.gz 
+WORKDIR /readuntil_tb/bwa-0.7.13/
+RUN make
+RUN mv bwa /usr/bin/
+WORKDIR /readuntil_tb/
+
+## Install openblas
+RUN wget https://github.com/xianyi/OpenBLAS/zipball/master
+RUN unzip master
+WORKDIR /readuntil_tb/xianyi-OpenBLAS-12ab180/
+RUN make FC=gfortran
+RUN make PREFIX=/opt/openblas install
+WORKDIR /readuntil_tb/
+
+ADD requirements.txt /readuntil_tb/
+RUN apt-get install -y emacs
+RUN pip install --upgrade pip
+RUN apt-get install -y netcdf-bin libhdf5-dev python-h5py
+RUN pip install virtualenv
+RUN virtualenv venv
+RUN . /readuntil_tb/venv/bin/activate
+
+
+## Install numpy
+#RUN mkdir venv/download
+#WORKDIR  /readuntil_tb/venv/download
+RUN mkdir venv/build
+WORKDIR /readuntil_tb/venv/build
+RUN wget -O /readuntil_tb/venv/build/numpy-1.11.0.tar.gz http://downloads.sourceforge.net/project/numpy/NumPy/1.11.0/numpy-1.11.0.tar.gz?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fnumpy%2Ffiles%2FNumPy%2F &&  tar -xzf /readuntil_tb/venv/build/numpy-1.11.0.tar.gz
+
+WORKDIR /readuntil_tb/venv/build/numpy-1.11.0
+RUN echo "[DEFAULT]\nlibrary_dirs = /opt/openblas/lib/\ninclude_dirs = /opt/openblas/include/\n\n[atlas]\natlas_libs = openblas\nlibraries = openblas\n\n[openblas]\nlibraries = openblas\nlibrary_dirs =  /opt/openblas/lib/\ninclude_dirs =  /opt/openblas/include/" >  site.cfg
+RUN export OPENBLAS_NUM_THREADS=1
+RUN unset CPPFLAGS
+RUN unset LDFLAGS
+RUN python setup.py build --fcompiler=gnu95
+RUN python setup.py install
+ENV LD_LIBRARY_PATH /opt/openblas/lib/
+#RUN export LD_RUN_PATH=$LD_LIBRARY_PATH
+#RUN export LAPACK=/opt/openblas/lib/libopenblas.a
+#RUN export BLAS=/opt/openblas/lib/libopenblas.a
+
+
+WORKDIR  /readuntil_tb/
+
+RUN pip install -U -r requirements.txt
+ADD . /readuntil_tb/
+EXPOSE 8001
+WORKDIR /readuntil_tb/nanonet/
+
+RUN python setup.py develop
+
+WORKDIR /readuntil_tb/server/
+
+
+CMD uwsgi --buffer-size=32768 --processes 4 --socket :8001 --http-timeout 300 -w wsgi:app

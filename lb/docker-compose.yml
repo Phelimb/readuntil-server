@@ -1,0 +1,4 @@
+nginx:
+  image: phelimb/readuntil_load_balancer
+  ports:
+    - "80:80"

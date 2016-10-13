@@ -16,9 +16,6 @@ def fast5s(path):
 
 	return f
 
-
-	
-
 if len(sys.argv)!=3:
 	print "Wrong number of arguments"
 	print sys.argv[0],"[PATH_TO_FAST5_FOLDER] [IndexName]"

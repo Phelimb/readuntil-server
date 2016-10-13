@@ -57,3 +57,27 @@ tar -c . | ssh -p989 compass@83.151.222.218 'cat > /mnt/microbio/HOMES/Nanopore/
 ```
 
 You could copy directly to WT but it is good to have a copy in JR.
+
+## Running simulations
+
+In order to run simulations you need to run fast5index.py and provide a folder with fast5 files, it can have subfolders it will recurse on them. Then once the index is generated, you can use the client. I recoment to not to use speeding up fature as it's a bit buggy.
+
+You can find error while processing reads with fast5index, and that can be caused because paths within fast5 files can be changed:
+
+Right now in the python code there are two configurations:
+
+```python
+evs=fast5['Analyses']['EventDetection_000']['Reads'][read]['Events']
+#evs=fast5['Analyses']['Basecall_RNN_1D_000']['BaseCalled_template']['Events']
+```
+
+
+Execution example:
+```bash
+python fast5index.py path/to/filder/containing/fast5s /path/to/index/file.idx
+# run nanonet server on http://localhost:8001/
+python client.py -i /path/to/index/file.idx -t 100 -r 200 -s http://localhost:8001/ -o /path/to/index/file.simulation.out
+
+# -t is the trimming length
+# -r is the read length that is being basecalled (number ov event sent to the server)
+```
